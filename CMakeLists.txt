@@ -19,6 +19,18 @@ endif()
 
 target_link_libraries(csp_ping_pong benchmark::benchmark)
 
+# --
+find_package(Threads REQUIRED)
+add_executable(copper_ping_pong src/copper_ping_pong.cpp)
+include(FetchContent)
+FetchContent_Declare(
+  copper
+  GIT_REPOSITORY https://github.com/atollk/copper
+  GIT_TAG v1.1)
+FetchContent_MakeAvailable(copper)
+target_link_libraries(copper_ping_pong Threads::Threads copper
+                      benchmark::benchmark)
+
 install(
   TARGETS sobjectizer_test
   DESTINATION "."
