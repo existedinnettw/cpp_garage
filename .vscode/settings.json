@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "*.h": "cpp",
+        "*.hpp": "cpp",
+        "*.cc": "cpp",
+        "*.cpp": "cpp",
+    },
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc-13",
+    "C_Cpp.autoAddFileAssociations": false,
+    "files.exclude": {
+        "**/build": true
+    },
+    "search.exclude": {
+        "**/build": true
+    },
+}
