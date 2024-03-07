@@ -39,7 +39,8 @@ class sobjectizer_testRecipe(ConanFile):
         cmake.install()
 
     def requirements(self):
-        self.requires("sobjectizer/5.8.1")
+        self.requires("sobjectizer/[~5.8]")
+        self.requires("benchmark/[~1.8]")
         
 
     

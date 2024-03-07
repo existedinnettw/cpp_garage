@@ -1,6 +1,7 @@
+#include <benchmark/benchmark.h>
 #include <memory>
+#include <random>
 #include <so_5/all.hpp>
-
 
 using namespace so_5;
 
@@ -13,7 +14,7 @@ struct ping
    */
   void world_func()
   {
-    std::cout << "world\n";
+    // std::cout << "world\n";
   };
 };
 
@@ -28,16 +29,18 @@ struct pong
 };
 
 void
-pinger_proc(so_5::mchain_t self_ch, so_5::mchain_t ping_ch)
+pinger_proc(so_5::mchain_t self_ch, so_5::mchain_t ping_ch, benchmark::State& state)
 {
   so_5::send<so_5::mutable_msg<ping>>(ping_ch, 1000);
 
 
   // Read all message until channel will be closed.
   so_5::receive(so_5::from(self_ch).handle_all(), [&](so_5::mutable_mhood_t<pong> cmd) {
-    if (cmd->counter_ > 0)
+    // if (cmd->counter_ > 0){
+    if (state.KeepRunning()) {
       so_5::send<so_5::mutable_msg<ping>>(ping_ch, cmd->counter_ - 1);
-    else {
+      //   ++state;
+    } else {
       // Channels have to be closed to break `receive` calls.
       so_5::close_drop_content(so_5::exceptions_enabled, self_ch);
       so_5::close_drop_content(so_5::exceptions_enabled, ping_ch);
@@ -69,10 +72,12 @@ ponger_proc(so_5::mchain_t self_ch, so_5::mchain_t pong_ch)
  * Messages](https://sourceforge.net/p/sobjectizer/wiki/so-5.5%20In-depth%20-%20Mutable%20Messages/) probably set
  * process in coroutine is possible
  */
-int
-main()
+static void
+bench_pingpong(benchmark::State& state)
 {
   so_5::wrapped_env_t sobj;
+
+  //   std::cout << "range 0 val:" << state.range(0) << "\n";
 
   auto pinger_ch = so_5::create_mchain(sobj); // this is unlimited channel
   auto ponger_ch = so_5::create_mchain(sobj);
@@ -89,11 +94,14 @@ main()
   //                                        so_5::mchain_props::overflow_reaction_t::throw_exception);
 
   // As you seen, process run at seperated thread rather than coroutine.
-  std::thread pinger{ pinger_proc, pinger_ch, ponger_ch };
+  //   state.PauseTiming();
+  std::thread pinger{ pinger_proc, pinger_ch, ponger_ch, std::ref(state) };
   std::thread ponger{ ponger_proc, ponger_ch, pinger_ch };
 
   ponger.join();
   pinger.join();
+
+  //   state.ResumeTiming();
 
   //   so_5::launch([](so_5::environment_t& env) {
   // raw_receive_case(env);
@@ -101,6 +109,7 @@ main()
   //   });
 
   //   so_5::mchain_props::overflow_reaction_t::drop_newest;
-
-  return 0;
 }
+BENCHMARK(bench_pingpong);
+
+BENCHMARK_MAIN();
