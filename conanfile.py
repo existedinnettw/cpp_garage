@@ -1,6 +1,6 @@
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
-
+from conan.tools.build import can_run, check_min_cppstd
 
 class sobjectizer_testRecipe(ConanFile):
     name = "sobjectizer_test"
@@ -19,6 +19,9 @@ class sobjectizer_testRecipe(ConanFile):
 
     # Sources are located in the same place as this recipe, copy them to the recipe
     exports_sources = "CMakeLists.txt", "src/*"
+
+    def validate(self):
+        check_min_cppstd(self, "20")
 
     def layout(self):
         cmake_layout(self)
@@ -41,6 +44,7 @@ class sobjectizer_testRecipe(ConanFile):
     def requirements(self):
         self.requires("sobjectizer/[~5.8]")
         self.requires("benchmark/[~1.8]")
+        self.requires("asiochan/[~0]")
         
 
     

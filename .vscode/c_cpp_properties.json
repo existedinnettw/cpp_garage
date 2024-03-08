@@ -5,7 +5,9 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "~/.conan2/p/sobje*/s/src/dev/**",
-                "~/.conan2/p/bench*/s/src/**"
+                "~/.conan2/p/bench*/s/src/**",
+                "~/.conan2/p/asioc*/s/**",
+                "~/.conan2/p/boost*/s/src/boost/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
