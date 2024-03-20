@@ -22,6 +22,9 @@ class pahomqtt_pingpongRecipe(ConanFile):
 
     def requirements(self):
         self.requires("paho-mqtt-cpp/1.2.0")
+        # self.requires("tomlplusplus/[~3]") #cpp17
+        self.requires("toml11/[~3]")
+        # self.requires("ghc-filesystem/[~1.5]")
 
     def validate(self):
         check_min_cppstd(self, 11) #paho

@@ -8,10 +8,33 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <toml.hpp>
 #include <vector>
 
 using namespace std::chrono;
 using namespace std;
+
+std::string BROKER_ADDRESS;
+std::string TEST_NAME;
+std::string PING_CLIENT_ID;
+std::string PONG_CLIENT_ID;
+std::string PING_TOPIC;
+std::string PONG_TOPIC;
+const int QOS = 0;
+
+void
+init_config()
+{
+  const auto data = toml::parse("config.toml");
+
+  BROKER_ADDRESS = toml::find<std::string>(data, "BROKER_ADDRESS");
+  TEST_NAME = toml::find<std::string>(data, "TEST_NAME");
+
+  PING_CLIENT_ID = { TEST_NAME + "_sync_ping_cpp" };
+  PONG_CLIENT_ID = { TEST_NAME + "_sync_pong_cpp" };
+  PING_TOPIC = { TEST_NAME + "/ping_num" };
+  PONG_TOPIC = { TEST_NAME + "/pong_num" };
+}
 
 ////////////////////////////////subscribe/////////////////////////////////////////////
 

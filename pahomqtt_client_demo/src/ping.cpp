@@ -18,32 +18,26 @@
 using namespace std::chrono;
 using namespace std;
 
-// const std::string SERVER_ADDRESS{ "mqtt://localhost:1883" }; //this lead to bug
-const std::string SERVER_ADDRESS{ "tcp://localhost:1883" };
-const std::string CLIENT_ID{ "sync_ping_cpp" };
-
-const int QOS = 0;
-
 // --------------------------------------------------------------------------
 
 int
 main(int argc, char* argv[])
 {
-  using namespace std;
+  init_config();
+  std::cout << "BROKER_ADDRESS:" << BROKER_ADDRESS << "\n";
+  std::cout << "TEST_NAME:" << TEST_NAME << "\n";
 
   std::cout << "Initialzing..." << std::endl;
   sample_mem_persistence persist;
-  mqtt::client client(SERVER_ADDRESS, CLIENT_ID, &persist); // mqtt::create_options(MQTTVERSION_5)
-  //   mqtt::async_client cli_async(SERVER_ADDRESS, CLIENT_ID);
-  //   mqtt::client client(SERVER_ADDRESS, CLIENT_ID);
-  cout << "barrier\n";
+  mqtt::client client(BROKER_ADDRESS, PING_CLIENT_ID, &persist); // mqtt::create_options(MQTTVERSION_5)
+  //   mqtt::async_client cli_async(BROKER_ADDRESS, PING_CLIENT_ID);
+  //   mqtt::client client(BROKER_ADDRESS, PING_CLIENT_ID);
 
   user_callback cb;
   client.set_callback(cb);
 
   mqtt::connect_options connOpts;
   connOpts.set_keep_alive_interval(20);
-  cout << "barrier\n";
   connOpts.set_clean_session(true);
   std::cout << "...OK" << std::endl;
 
@@ -77,7 +71,7 @@ main(int argc, char* argv[])
     // subscribe
     if (!rsp.is_session_present()) {
       std::cout << "Subscribing to topics..." << std::flush;
-      client.subscribe("pong_num", QOS);
+      client.subscribe(PONG_TOPIC, QOS);
       std::cout << "OK" << std::endl;
     } else {
       cout << "Session already present. Skipping subscribe." << std::endl;
@@ -91,7 +85,7 @@ main(int argc, char* argv[])
       // publish message
       now = std::chrono::system_clock::now();
       std::cout << "\nSending ping message:" << std::to_string(ping_num) << std::endl;
-      client.publish(mqtt::make_message("ping_num", std::to_string(ping_num), QOS, false));
+      client.publish(mqtt::make_message(PING_TOPIC, std::to_string(ping_num), QOS, false));
       std::cout << "...OK" << std::endl;
 
       // Consume messages
@@ -99,7 +93,7 @@ main(int argc, char* argv[])
       // while (true) {
       auto msg = client.consume_message(); // this is blocking function
       if (msg) {
-        if (msg->get_topic() == "pong_num") {
+        if (msg->get_topic() == PONG_TOPIC) {
           // cout << "Exit command received" << endl;
           pong_num = stoul(msg->to_string());
           cout << msg->get_topic() << ": " << pong_num << endl;
