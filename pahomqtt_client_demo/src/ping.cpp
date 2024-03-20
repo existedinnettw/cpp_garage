@@ -116,7 +116,7 @@ main(int argc, char* argv[])
       }
       // } // end of subscribe consume while
 
-      std::this_thread::sleep_until(now + chrono::milliseconds(500));
+      std::this_thread::sleep_until(now + chrono::milliseconds(PING_PERIOD_MS));
     } // end of ping
 
     // Disconnect

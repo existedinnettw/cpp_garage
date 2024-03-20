@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "~/.conan2/p/paho*/s/src/src/**"
+                "~/.conan2/p/paho*/s/src/src/**",
+                "~/.conan2/p/toml*/p/include/toml11"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

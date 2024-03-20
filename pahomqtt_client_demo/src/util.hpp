@@ -16,6 +16,9 @@ using namespace std;
 
 std::string BROKER_ADDRESS;
 std::string TEST_NAME;
+uint32_t PING_PERIOD_MS;
+
+std::string FILE_NAME = "config.toml"; // config filename
 std::string PING_CLIENT_ID;
 std::string PONG_CLIENT_ID;
 std::string PING_TOPIC;
@@ -25,10 +28,19 @@ const int QOS = 0;
 void
 init_config()
 {
-  const auto data = toml::parse("config.toml");
+  decltype((toml::parse)("")) data;
+  std::ifstream ifs(FILE_NAME, std::ios_base::binary);
+  if (ifs.is_open()) {
+    data = toml::parse("config.toml");
+  } else {
+    std::stringstream sstr;
+    sstr << "";
+    data = toml::parse(sstr);
+  }
 
-  BROKER_ADDRESS = toml::find<std::string>(data, "BROKER_ADDRESS");
-  TEST_NAME = toml::find<std::string>(data, "TEST_NAME");
+  BROKER_ADDRESS = toml::find_or(data, "BROKER_ADDRESS", "tcp://localhost:1883");
+  TEST_NAME = toml::find_or(data, "TEST_NAME", "pingpong");
+  PING_PERIOD_MS = toml::find_or(data, "PING_PERIOD_MS", 500);
 
   PING_CLIENT_ID = { TEST_NAME + "_sync_ping_cpp" };
   PONG_CLIENT_ID = { TEST_NAME + "_sync_pong_cpp" };

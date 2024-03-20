@@ -55,10 +55,10 @@ main(int argc, char* argv[])
     // actual publish
     uint64_t ping_num = 0;
     uint64_t pong_num = 0;
-    auto now = std::chrono::system_clock::now();
+    // auto now = std::chrono::system_clock::now();
     while (true) {
       // publish message
-      now = std::chrono::system_clock::now();
+      // now = std::chrono::system_clock::now();
 
       auto msg = client.consume_message(); // this is blocking function
       if (msg) {
@@ -77,8 +77,6 @@ main(int argc, char* argv[])
         cout << "Lost connection" << endl;
         break;
       }
-
-      std::this_thread::sleep_until(now + chrono::milliseconds(500));
     } // end of ping
 
     // Disconnect
