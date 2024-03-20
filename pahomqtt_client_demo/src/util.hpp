@@ -1,7 +1,3 @@
-// ping
-// from sync_publish.cpp
-// sync_consume_v5.cpp
-
 #include "mqtt/client.h"
 #include <cctype>
 #include <chrono>
@@ -16,18 +12,6 @@
 
 using namespace std::chrono;
 using namespace std;
-
-// const std::string SERVER_ADDRESS{ "mqtt://localhost:1883" }; //this lead to bug
-const std::string SERVER_ADDRESS{ "tcp://localhost:1883" };
-const std::string CLIENT_ID{ "sync_ping_cpp" };
-const std::string TOPIC{ "hello" };
-
-const std::string PAYLOAD1{ "Hello World!" };
-
-const char* PAYLOAD2 = "Hi there!";
-const char* PAYLOAD3 = "Is anyone listening?";
-
-const int QOS = 0;
 
 ////////////////////////////////subscribe/////////////////////////////////////////////
 
@@ -53,8 +37,9 @@ command_handler(const mqtt::message& msg)
   }
   return true;
 }
-/////////////////////////////////////////////////////////////////////////////
 
+
+////////////////////////////////////publish/////////////////////////////////////////
 /**
  * fake persistance
  */
@@ -162,80 +147,4 @@ class user_callback : public virtual mqtt::callback
 
 public:
 };
-
-// --------------------------------------------------------------------------
-
-int
-main(int argc, char* argv[])
-{
-  using namespace std;
-
-  std::cout << "Initialzing..." << std::endl;
-  sample_mem_persistence persist;
-  mqtt::client client(SERVER_ADDRESS, CLIENT_ID, &persist); // mqtt::create_options(MQTTVERSION_5)
-  //   mqtt::async_client cli_async(SERVER_ADDRESS, CLIENT_ID);
-  //   mqtt::client client(SERVER_ADDRESS, CLIENT_ID);
-  cout << "barrier\n";
-
-  user_callback cb;
-  client.set_callback(cb);
-
-  mqtt::connect_options connOpts;
-  connOpts.set_keep_alive_interval(20);
-  cout << "barrier\n";
-  connOpts.set_clean_session(true);
-  std::cout << "...OK" << std::endl;
-
-  // this test is try to known the raw stability of mqtt
-  // auto connOpts = mqtt::connect_options_builder()
-  //                    .user_name("user")
-  //                    .password("passwd")
-  //                    .keep_alive_interval(seconds(30))
-  //                    .automatic_reconnect(seconds(2), seconds(30))
-  //                    .clean_session(false)
-  //                    .finalize();
-  // You can install a callback to change some connection data
-  // on auto reconnect attempts. To make a change, update the
-  // `connect_data` and return 'true'.
-  // cli.set_update_connection_handler([](mqtt::connect_data& connData) {
-  //   string newUserName{ "newuser" };
-  //   if (connData.get_user_name() == newUserName)
-  //     return false;
-
-  //   cout << "Previous user: '" << connData.get_user_name() << "'" << endl;
-  //   connData.set_user_name(newUserName);
-  //   cout << "New user name: '" << connData.get_user_name() << "'" << endl;
-  //   return true;
-  // });
-
-  try {
-    std::cout << "\nConnecting..." << std::endl;
-    client.connect(connOpts);
-    std::cout << "...OK" << std::endl;
-
-    // actual publish
-    uint64_t ping_num = 0;
-    auto now = std::chrono::system_clock::now();
-    while (ping_num < 1e9) {
-      now = std::chrono::system_clock::now();
-      std::cout << "\nSending message..." << std::endl;
-      client.publish(mqtt::make_message(TOPIC, PAYLOAD1, QOS, false));
-      std::cout << "...OK" << std::endl;
-      std::this_thread::sleep_until(now + chrono::milliseconds(500));
-    }
-
-    // Disconnect
-    std::cout << "\nDisconnecting..." << std::endl;
-    client.disconnect();
-    std::cout << "...OK" << std::endl;
-  } catch (const mqtt::persistence_exception& exc) {
-    std::cerr << "Persistence Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
-    return 1;
-  } catch (const mqtt::exception& exc) {
-    std::cerr << exc.what() << std::endl;
-    return 1;
-  }
-
-  std::cout << "\nExiting" << std::endl;
-  return 0;
-}
+/////////////////////////////////////////////////////////////////////////////

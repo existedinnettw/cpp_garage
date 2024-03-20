@@ -20,10 +20,9 @@ using namespace std;
 
 // const std::string SERVER_ADDRESS{ "mqtt://localhost:1883" }; //this lead to bug
 const std::string SERVER_ADDRESS{ "tcp://localhost:1883" };
-const std::string CLIENT_ID{ "sync_pong_cpp" };
+const std::string CLIENT_ID{ "sync_ping_cpp" };
 
 const int QOS = 0;
-
 
 // --------------------------------------------------------------------------
 
@@ -48,6 +47,28 @@ main(int argc, char* argv[])
   connOpts.set_clean_session(true);
   std::cout << "...OK" << std::endl;
 
+  // this test is try to known the raw stability of mqtt
+  // auto connOpts = mqtt::connect_options_builder()
+  //                    .user_name("user")
+  //                    .password("passwd")
+  //                    .keep_alive_interval(seconds(30))
+  //                    .automatic_reconnect(seconds(2), seconds(30))
+  //                    .clean_session(false)
+  //                    .finalize();
+  // You can install a callback to change some connection data
+  // on auto reconnect attempts. To make a change, update the
+  // `connect_data` and return 'true'.
+  // client.set_update_connection_handler([](mqtt::connect_data& connData) {
+  //   string newUserName{ "newuser" };
+  //   if (connData.get_user_name() == newUserName)
+  //     return false;
+
+  //   cout << "Previous user: '" << connData.get_user_name() << "'" << endl;
+  //   connData.set_user_name(newUserName);
+  //   cout << "New user name: '" << connData.get_user_name() << "'" << endl;
+  //   return true;
+  // });
+
   try {
     std::cout << "\nConnecting..." << std::endl;
     mqtt::connect_response rsp = client.connect(connOpts);
@@ -56,7 +77,7 @@ main(int argc, char* argv[])
     // subscribe
     if (!rsp.is_session_present()) {
       std::cout << "Subscribing to topics..." << std::flush;
-      client.subscribe("ping_num", QOS);
+      client.subscribe("pong_num", QOS);
       std::cout << "OK" << std::endl;
     } else {
       cout << "Session already present. Skipping subscribe." << std::endl;
@@ -66,27 +87,40 @@ main(int argc, char* argv[])
     uint64_t ping_num = 0;
     uint64_t pong_num = 0;
     auto now = std::chrono::system_clock::now();
-    while (true) {
+    while (ping_num < 1e9) {
       // publish message
       now = std::chrono::system_clock::now();
+      std::cout << "\nSending ping message:" << std::to_string(ping_num) << std::endl;
+      client.publish(mqtt::make_message("ping_num", std::to_string(ping_num), QOS, false));
+      std::cout << "...OK" << std::endl;
 
+      // Consume messages
+      // there is no seperated thread, after ping, it always wait until response
+      // while (true) {
       auto msg = client.consume_message(); // this is blocking function
       if (msg) {
-        if (msg->get_topic() == "ping_num") {
+        if (msg->get_topic() == "pong_num") {
           // cout << "Exit command received" << endl;
-          ping_num = stoul(msg->to_string());
-          cout << msg->get_topic() << ": " << ping_num << endl;
-          pong_num = ping_num;
-
-          std::cout << "\nSending pong message:" << std::to_string(pong_num) << std::endl;
-          client.publish(mqtt::make_message("pong_num", std::to_string(pong_num), QOS, false));
-          std::cout << "...OK" << std::endl;
+          pong_num = stoul(msg->to_string());
+          cout << msg->get_topic() << ": " << pong_num << endl;
+          if (pong_num == ping_num) {
+            ping_num += 1;
+          } else {
+            std::cout << "unexpeced pong value, bug exist\n";
+            break;
+          }
         }
-
+        // cout << msg->get_topic() << ": " << msg->to_string() << endl;
+        // break;
       } else if (!client.is_connected()) {
         cout << "Lost connection" << endl;
+        // while (!client.is_connected()) {
+        // 	this_thread::sleep_for(milliseconds(250));
+        // }
+        // cout << "Re-established connection" << endl;
         break;
       }
+      // } // end of subscribe consume while
 
       std::this_thread::sleep_until(now + chrono::milliseconds(500));
     } // end of ping
