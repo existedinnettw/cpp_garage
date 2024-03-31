@@ -10,56 +10,19 @@
 #include <vector>
 
 #ifdef ASIOCHAN_USE_STANDALONE_ASIO
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
 #include <asio/thread_pool.hpp>
 #include <asio/use_future.hpp>
 #else
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/asio/use_future.hpp>
 namespace asio = boost::asio;
 #endif
-
-auto
-sum_subtask(asiochan::read_channel<std::optional<int>> in, asiochan::write_channel<int> out) -> asio::awaitable<void>
-{
-  auto sum = 0;
-  while (auto value = co_await in.read()) {
-    sum += *value;
-  }
-
-  co_await out.write(sum);
-}
-
-auto
-sum_task(std::span<int const> array, int num_tasks) -> asio::awaitable<int>
-{
-  auto executor = co_await asio::this_coro::executor;
-
-  // Spawn N child routines, sharing the same in/out channels
-  auto in = asiochan::channel<std::optional<int>>{};
-  auto out = asiochan::channel<int>{};
-  for ([[maybe_unused]] auto _ : std::views::iota(0, num_tasks)) {
-    asio::co_spawn(executor, sum_subtask(in, out), asio::detached);
-  }
-
-  // Send the array to the child routines
-  for (auto val : array) {
-    co_await in.write(val);
-  }
-
-  for ([[maybe_unused]] auto _ : std::views::iota(0, num_tasks - 1)) {
-    // Join a task
-    co_await in.write(std::nullopt);
-    // Retrieve its result
-    auto subresult = co_await out.read();
-    // Send it to another task
-    co_await in.write(subresult);
-  }
-
-  // Join the last task
-  co_await in.write(std::nullopt);
-  // Retrieve the complete result
-  co_return co_await out.read();
-}
 
 // std::future<int>
 // auto
@@ -68,9 +31,7 @@ sum_task(std::span<int const> array, int num_tasks) -> asio::awaitable<int>
  * I don't know how to get future with void type, so change to return 0
  */
 auto
-pinger(asiochan::write_channel<std::optional<int>> ping_out_pong_in,
-       asiochan::read_channel<std::optional<int>> ping_in_pong_out,
-       benchmark::State& state) -> asio::awaitable<int>
+pinger(auto ping_out_pong_in, auto ping_in_pong_out, benchmark::State& state) -> asio::awaitable<int>
 {
   co_await ping_out_pong_in.write(1);
   while (auto value = co_await ping_in_pong_out.read()) {
@@ -85,8 +46,7 @@ pinger(asiochan::write_channel<std::optional<int>> ping_out_pong_in,
   co_return 0;
 }
 auto
-ponger(asiochan::read_channel<std::optional<int>> ping_out_pong_in,
-       asiochan::write_channel<std::optional<int>> ping_in_pong_out) -> asio::awaitable<void>
+ponger(auto ping_out_pong_in, auto ping_in_pong_out) -> asio::awaitable<void>
 {
   while (auto value = co_await ping_out_pong_in.read()) {
     // chan.pop()
@@ -98,44 +58,26 @@ ponger(asiochan::read_channel<std::optional<int>> ping_out_pong_in,
   co_return;
 }
 
-// int
-// main()
-// {
-//   auto tp = asio::thread_pool{};
-
-//   auto numbers = std::vector<int>(10'000);
-//   std::iota(numbers.begin(), numbers.end(), 1);
-
-//   auto start = std::chrono::steady_clock::now();
-
-//   auto task = asio::co_spawn(tp, sum_task(numbers, 100), asio::use_future);
-//   auto result = task.get();
-
-//   auto dur = std::chrono::steady_clock::now() - start;
-
-//   std::cout << "The result is: " << result << "\n";
-//   std::cout << "Test duration: " << std::chrono::duration<double>{ dur }.count() << "s\n";
-
-//   return EXIT_SUCCESS;
-// }
+/**
+ * The result is about 900ns each ping pong --> 450ns each switch.
+ * Other show asio is about 100ns context switch.
+ * I am not sure if switch time will lower, if coroutine increase.
+ */
 static void
 bench_pingpong(benchmark::State& state)
 {
   //   auto executor = co_await asio::this_coro::executor;
-  auto tp = asio::thread_pool{};
-
   // Spawn N child routines, sharing the same in/out channels
-  auto in = asiochan::channel<std::optional<int>>{};
-  auto out = asiochan::channel<std::optional<int>>{};
-  //   for (auto i : std::views::iota(0, num_tasks)) {
-  //     asio::co_spawn(executor, sum_subtask(in, out), asio::detached);
-  //   }
-  //   asio::co_spawn(executor, pinger(in, out, state), asio::detached);
-  //   auto task = asio::co_spawn(tp, pinger(in, out, state), asio::use_awaitable);
+  auto in = asiochan::channel<std::optional<int>, 0>{}; // queue size lower, better
+  auto out = asiochan::channel<std::optional<int>, 0>{};
+
+  auto tp = asio::thread_pool{}; //higher , worse
+  // asio::io_context tp;
   auto task = asio::co_spawn(tp, pinger(in, out, state), asio::use_future);
   //   co_await asio::co_spawn(executor, ponger(in, out), asio::use_awaitable);
-  asio::co_spawn(tp, ponger(in, out), asio::detached);
-  auto result = task.get(); // use_future
+  asio::co_spawn(tp, ponger(in, out), asio::detached); // detached, use_future...
+  // tp.run();
+  [[maybe_unused]] auto result = task.get(); // use_future
   //   co_await task;
 }
 BENCHMARK(bench_pingpong);
