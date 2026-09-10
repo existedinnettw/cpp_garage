@@ -1,0 +1,48 @@
+[build-system]
+# conan-py-build is a PEP 517 backend: `uv build` / `uv sync` -> conan build
+# -> CMake -> (fmt from Conan Center, nanobind from Conan Center, our C++ lib).
+requires = ["conan-py-build>=0.6"]
+build-backend = "conan_py_build.build"
+
+[project]
+name = "uv_conan_nanobind_demo"
+version = "0.1.0"
+description = "uv-managed Python package whose nanobind extension is built on top of a Conan C++ library"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.conan-py-build]
+# Composed on top of the active Conan profile (nanobind needs C++17).
+extra-profile = "cpp17.profile"
+# Appended to both `conan build` and `conan export-pkg`, so only flags valid for
+# both belong here (conan-py-build already adds `--build=missing` itself).
+# `-r conancenter` keeps the demo self-contained: it skips any private remotes
+# in your Conan config that might prompt for credentials.
+extra-arguments = ["-r", "conancenter"]
+
+[tool.conan-py-build.sdist]
+# By default only pyproject.toml, conanfile.py, CMakeLists.txt, the profile and
+# the Python package are shipped; the C++ sources must be listed explicitly so a
+# wheel can be built from the sdist.
+include = ["cpp", "bindings", "tests"]  # plain paths (files or dirs), not globs
+
+[tool.uv]
+# Rebuild the extension whenever C++ sources or build files change.
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "conanfile.py" },
+  { file = "CMakeLists.txt" },
+  { file = "cpp17.profile" },
+  { file = "cpp/**/*" },
+  { file = "bindings/**/*" },
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
