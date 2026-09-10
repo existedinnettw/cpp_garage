@@ -9,3 +9,7 @@ To build the example, plz follow [Build a simple CMake project using Conan](http
 ## python binding demo
 
 `uv_conan_nanobind_demo/`: a `uv` project whose nanobind extension is built on top of a Conan-managed C++ library via the `conan-py-build` backend. See its README.
+
+## ROS 2 demo
+
+`ros2_conan_demo/`: a colcon workspace with two ament packages, each with its own `conanfile.py`, getting `fmt`/`nlohmann_json` from Conan via the `ROSEnv` generator, with no Conan-specific code in `CMakeLists.txt`. See its README.
