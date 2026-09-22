@@ -1,0 +1,11 @@
+# Host profile for Zephyr's native_sim board: the firmware is a 64-bit Linux
+# executable built with the host compiler, so the ordinary default profile
+# describes the target; only the board and spdlog's exception mode change.
+include(default)
+
+[settings]
+compiler.cppstd=17
+
+[options]
+zephyr_conan/*:board=native_sim/native/64
+spdlog/*:no_exceptions=True

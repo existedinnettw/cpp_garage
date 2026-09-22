@@ -1,0 +1,8 @@
+/* Grow the bootloader partition from the board default of 32 KB to 48 KB
+ * (three 16 KB sectors on the STM32F429), so MCUboot fits with its console
+ * and logging enabled. slot0/slot1 start at 128 KB and are unaffected.
+ * The same change is applied to the MCUboot image via sysbuild/mcuboot.overlay.
+ */
+&boot_partition {
+	reg = <0x00000000 DT_SIZE_K(48)>;
+};
