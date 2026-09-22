@@ -137,5 +137,27 @@ because Conan only ran `west build` for you.
 * The private Conan remote prompts for a login; pass `-r conancenter` when
   you only need Conan Center packages.
 
+## Relation to the design discussion
+
+This follows the "Conan outside" conclusion of the design discussion that
+preceded it: Conan is the package/environment graph, `west build` (and
+sysbuild) the untouched firmware image graph, CMake imported targets are the
+seam, the SDK is a `tool_requires`, and the pinned west workspace is one
+opaque platform package. Two refinements came out of actually building it:
+
+* **The generated Zephyr module is not "wrapping Conan packages in dummy
+  modules"** (which the discussion rightly warns against). Libraries stay
+  plain `find_package()` targets; the module carries no packages, only the
+  build-type reconciliation that Conan's generators force on a build system
+  which does not use `CMAKE_BUILD_TYPE`. `CMakeConfigDeps` and its
+  `conan_cmakedeps_paths.cmake`, suggested there as the toolchain-free
+  alternative, have the same `CMAKE_BUILD_TYPE` requirement.
+* **The host profile is still hand-written per board.** The discussion
+  identifies deriving the Conan host profile from Zephyr's board/toolchain
+  selection as the hard, unsolved piece, and this demo does not solve it:
+  `profiles/nucleo_f429zi` was written by reading the flags of a probe build.
+  Generating it (board -> arch/CPU/FPU/ABI/SDK version) is the natural next
+  step if this grows beyond one MCU family.
+
 See `../zephyr_conan_sysbuild` for the same app built through sysbuild with
 MCUboot.
