@@ -1,0 +1,20 @@
+# Sysbuild (multi-image) configuration for this application.
+#
+# The bootloader decision stays in Kconfig, not in conanfile.py: whether an
+# image needs MCUboot is a firmware concern. native_sim has no flash to boot
+# from; every other board built here gets MCUboot in front of the app.
+#
+# The choice overrides come *before* the main sysbuild Kconfig is sourced, the
+# same trick Zephyr's Kconfig.defconfig files use: the first satisfied default
+# wins, and the stock "default BOOTLOADER_NONE" is unconditional.
+
+choice BOOTLOADER
+	default BOOTLOADER_MCUBOOT if !BOARD_NATIVE_SIM
+endchoice
+
+choice MCUBOOT_MODE
+	# Simplest upgrade mode; enough for a demo and for the F429's flash layout.
+	default MCUBOOT_MODE_OVERWRITE_ONLY
+endchoice
+
+source "${ZEPHYR_BASE}/share/sysbuild/Kconfig"

@@ -1,0 +1,31 @@
+# Host profile for the STM32F429 Nucleo board (Cortex-M4, no FPU enabled in
+# Zephyr's board config). The flags mirror what Zephyr passes for this board,
+# so Conan-built libraries share the ABI, multilib and libc of the firmware.
+[settings]
+os=baremetal
+arch=armv7
+compiler=gcc
+compiler.version=14
+compiler.cppstd=17
+compiler.libcxx=libstdc++11
+build_type=MinSizeRel
+
+[options]
+zephyr_conan_sysbuild/*:board=nucleo_f429zi
+# Zephyr links with -fno-pic/-fno-pie; PIC objects would drag in a GOT.
+*:fPIC=False
+# Zephyr builds with -fno-exceptions/-fno-rtti; fmt detects that itself,
+# spdlog needs to be told.
+spdlog/*:no_exceptions=True
+
+[tool_requires]
+# The Zephyr SDK in the build context provides arm-zephyr-eabi-* on PATH for
+# every package in the graph, not only the firmware itself.
+zephyr-sdk/1.0.1
+
+[conf]
+tools.build:compiler_executables={"c": "arm-zephyr-eabi-gcc", "cpp": "arm-zephyr-eabi-g++"}
+tools.build:cflags=["-mcpu=cortex-m4", "-mthumb", "-mabi=aapcs", "-mfp16-format=ieee", "-mtp=soft", "-specs=picolibc.specs", "-ffunction-sections", "-fdata-sections", "-fno-common", "-fno-pic", "-fno-pie"]
+tools.build:cxxflags=["-mcpu=cortex-m4", "-mthumb", "-mabi=aapcs", "-mfp16-format=ieee", "-mtp=soft", "-specs=picolibc.specs", "-ffunction-sections", "-fdata-sections", "-fno-common", "-fno-pic", "-fno-pie", "-fno-exceptions", "-fno-rtti"]
+# No linkable executable on bare metal: let CMake's compiler checks build a static library.
+tools.cmake.cmaketoolchain:extra_variables={"CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY"}

@@ -1,0 +1,17 @@
+/* Devicetree overlay for the MCUboot image only (sysbuild/<image>.overlay).
+ *
+ * Careful: sysbuild passes this file as DTC_OVERLAY_FILE, which *replaces*
+ * MCUboot's own boot/zephyr/app.overlay instead of adding to it. So the
+ * chosen code-partition that app.overlay normally provides must be repeated
+ * here, or MCUboot silently gets linked into slot0.
+ */
+/ {
+	chosen {
+		zephyr,code-partition = &boot_partition;
+	};
+};
+
+/* Mirror of boards/nucleo_f429zi.overlay: 48 KB bootloader partition. */
+&boot_partition {
+	reg = <0x00000000 DT_SIZE_K(48)>;
+};
